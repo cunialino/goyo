@@ -16,10 +16,64 @@
     </div>
     {{ page.content | safe }}
 
+    <!--  Errata section  -->
+    {# --- START: AUTOMATIC ERRATA SECTION --- #}
+    {% if page.extra.errata %}
+    {% set badge_light = config.extra.errata_badge_light | default(value="badge-soft badge-accent") %}
+    {% set badge_dark  = config.extra.errata_badge_dark  | default(value="badge-soft badge-accent") %}
+
+    <div class="errata mt-12 pt-6">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+            <span class="text-warning">⚠</span> {{ trans(key="errata_section", lang=lang) }}
+        </h2>
+
+        <div class="flex flex-col gap-4">
+            {% for item in page.extra.errata %}
+            <div class="scroll-mt-20">
+                <div class="collapse collapse-arrow bg-base-200 border border-base-300 rounded-box">
+                    <input type="checkbox" />
+
+                    <div class="collapse-title text-base font-medium flex flex-col gap-2">
+                        <div class="flex flex-row items-baseline gap-2">
+                            <span
+                                    class="whitespace-nowrap shrink-0 badge"
+                                    data-errata-badge
+                                    data-badge-light="{{ badge_light }}"
+                                    data-badge-dark="{{ badge_dark }}"
+                            >
+                              Errata {{ loop.index }}
+                            </span>
+
+                            <span class="text-sm/10">
+                                <span class="font-bold">{{ item.date | date(format="%Y-%m-%d") }}:</span>
+                                {{ item.message }}
+                            </span>
+                        </div>
+
+                        {% if item.credit %}
+                        <div class="text-xs opacity-70 italic whitespace-nowrap px-1">
+                            {{ item.credit | markdown | striptags | safe }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if item.content and item.content | length > 0 %}
+                    <div class="collapse-content prose max-w-none pt-2 bg-base-100/50">
+                        {{ item.content | markdown | safe }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     {# Taxonomies (tags / categories) #}
     {% if page.taxonomies and (page.taxonomies.tags or page.taxonomies.categories) %}
     <div class="mt-8 pt-6 border-t border-gray-500/15 space-y-2 text-sm">
         {% if page.taxonomies.categories %}
+        {% set feed_filename = config.feed_filenames | first | default(value="atom.xml") %}
         <div class="flex flex-wrap items-center gap-2">
             <div class="tooltip" data-tip="Categories">
                 <svg class="w-4 h-4 text-base-content/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,10 +82,22 @@
                 </svg>
             </div>
             {% for cat in page.taxonomies.categories %}
-            <a href="{{ get_taxonomy_url(kind="categories", name=cat) }}"
-               class="inline-flex items-center badge badge-dash border-gray-500/30 text-xs hover:border-gray-500/70 transition-colors">
-                {{ cat }}
-            </a>
+            {% set cat_url = get_taxonomy_url(kind="categories", name=cat, lang=lang, required=false) %}
+            <div class="flex">
+                <a href="{{ cat_url }}"
+                   class="inline-flex items-center badge badge-dash border-gray-500/30 text-xs hover:border-gray-500/70 transition-colors">
+                    {{ cat }}
+                </a>
+                <button
+                        onclick="copyToClipboardRSSIcon('{{ cat_url ~ feed_filename }}', this)"
+                        class="relative w-6 h-6 inline-flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors cursor-pointer"
+                        title="Copy Feed Link"
+                >
+                    <svg class="absolute w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                    </svg>
+                </button>
+            </div>
             {% endfor %}
         </div>
         {% endif %}
@@ -44,7 +110,7 @@
                 </svg>
             </div>
             {% for tag in page.taxonomies.tags %}
-            <a href="{{ get_taxonomy_url(kind="tags", name=tag) }}"
+            <a href="{{ get_taxonomy_url(kind="tags", name=tag, lang=lang, required=false) }}"
                class="inline-flex items-center badge badge-dash text-xs border-gray-500/30 hover:border-gray-500/70 transition-colors">
                 {{ tag }}
             </a>
@@ -54,30 +120,91 @@
     </div>
     {% endif %}
 
-    {% if config.extra.edit_url %}
-    <div class="mt-8 pt-6 border-t border-gray-500/15">
-        <div class="flex flex-wrap items-center gap-4">
-            <a href="{{ config.extra.edit_url }}/content/{{ page.relative_path }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm text-base-content/60 hover:text-base-content transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                <span>Edit this page</span>
-            </a>
-            {# Share configuration with backward compatibility #}
-            {# Priority: share.* (new) > enable_copy_url/enable_share_x (legacy) #}
-            {% if config.extra.share is defined %}
-                {% set enable_copy_url = config.extra.share.copy_url | default(value=config.extra.enable_copy_url | default(value=false)) %}
-                {% set enable_share_x = config.extra.share.x | default(value=config.extra.enable_share_x | default(value=false)) %}
-            {% else %}
-                {% set enable_copy_url = config.extra.enable_copy_url | default(value=false) %}
-                {% set enable_share_x = config.extra.enable_share_x | default(value=false) %}
-            {% endif %}
+    {% if config.extra.edit_url and config.extra.issue_url %}
+        {% set alert_light = config.extra.issue_and_typo_badge_light | default(value="alert-soft alert-accent") %}
+        {% set alert_dark  = config.extra.issue_and_typo_badge_dark  | default(value="alert-accent") %}
+        <div class="mt-8 pt-6 border-t border-gray-500/15">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-around gap-6 mb-6">
+                <div class="text-sm text-base-content/80 w-full lg:w-1/2">
+                    <div class="flex flex-col items-center gap-1 items-baseline text-center whitespace-nowrap">
+                        <span
+                                class="alert"
+                                data-issue-and-typo-alert
+                                data-issue-and-typo-alert-light="{{ alert_light }}"
+                                data-issue-and-typo-alert-dark="{{ alert_dark }}"
+                        >
+                            {{ trans(key="found_error_alert", lang=lang) }}
+                        </span>
+                        <a href="{{ config.extra.issue_url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center text-primary font-medium transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                            {{ trans(key="open_issue", lang=lang) }}
+                        </a>
+                    </div>
+
+                    <div class="text-sm text-base-content/60 italic mb-4 text-center">
+                        {{ trans(key="attribution", lang=lang) }}
+                    </div>
+                </div>
+
+                <div class="text-sm text-base-content/80 flex flex-col items-center gap-1 w-full lg:w-1/2 whitespace-nowrap">
+                    <span
+                            class="alert"
+                            data-issue-and-typo-alert
+                            data-issue-and-typo-alert-light="{{ alert_light }}"
+                            data-issue-and-typo-alert-dark="{{ alert_dark }}"
+                    >
+                        {{ trans(key="found_typo_alert", lang=lang) }}
+                    </span>
+
+                    <a href="{{ config.extra.edit_url }}/content/{{ page.relative_path }}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       title="Edit this page"
+                       class="inline-flex items-center justify-center text-primary font-medium transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        {{ trans(key="fork_and_pr", lang=lang) }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% elif config.extra.edit_url %}
+        <div class="my-8 pt-6 border-t border-gray-500/15">
+            <div class="flex flex-wrap items-center gap-4">
+                <a href="{{ config.extra.edit_url }}/content/{{ page.relative_path }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm text-base-content/60 hover:text-base-content transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    <span>{{ trans(key="edit_page", lang=lang) }}</span>
+                </a>
+            </div>
+        </div>
+    {% endif %}
+
+    {# Share configuration with backward compatibility #}
+    {# Priority: share.* (new) > enable_copy_url/enable_share_x (legacy) #}
+    {% if config.extra.share is defined %}
+        {% set enable_copy_url = config.extra.share.copy_url | default(value=config.extra.enable_copy_url | default(value=false)) %}
+        {% set enable_share_x = config.extra.share.x | default(value=config.extra.enable_share_x | default(value=false)) %}
+    {% else %}
+        {% set enable_copy_url = config.extra.enable_copy_url | default(value=false) %}
+        {% set enable_share_x = config.extra.enable_share_x | default(value=false) %}
+    {% endif %}
+    {% if enable_copy_url != false or enable_share_x != false %}
+    <div class="mt-8">
+        <div class="flex flex-wrap items-center gap-4 border-t border-gray-500/10 pt-4">
             {% if enable_copy_url %}
-            <button onclick="navigator.clipboard.writeText(window.location.href).then(() => { this.innerHTML = this.innerHTML.replace('Copy URL', 'Copied!'); setTimeout(() => { this.innerHTML = this.innerHTML.replace('Copied!', 'Copy URL'); }, 2000); }).catch(() => { console.error('Failed to copy URL'); })" class="inline-flex items-center gap-2 text-sm text-base-content/60 hover:text-base-content transition-colors cursor-pointer">
+                <button onclick="copyURL('{{ page.permalink }}', this)" class="inline-flex items-center gap-2 text-sm text-base-content/60 hover:text-base-content transition-colors cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                 </svg>
-                <span>Copy URL</span>
+                <span>{{ trans(key="copy_url_msg", lang=lang) }}</span>
             </button>
             {% endif %}
             {% if enable_share_x and page.permalink and page.title %}
@@ -85,12 +212,14 @@
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
                 </svg>
-                <span>Share on X</span>
+                <span>{{ trans(key="share_on_x", lang=lang) }}</span>
             </a>
             {% endif %}
         </div>
-    </div>
+    {% else %}
+        <div><div>
     {% endif %}
+    </div>
 {% endblock content %}
 
 {% block prev_link %}
@@ -114,7 +243,7 @@
                     <svg class="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
-                    <span class="nav-button-label">Back to</span>
+                    <span class="nav-button-label">{{ trans(key="back_to", lang=lang) }}</span>
                 </div>
                 <div class="nav-button-title">{{ parent.title }}</div>
             </div>
@@ -127,10 +256,10 @@
         <a class="nav-button nav-button-next group" href="{{ page.higher.permalink | safe }}">
             <div class="nav-button-content">
                 <div class="nav-button-direction">
-                    <span class="nav-button-label">Next</span>
                     <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
+                    <span class="nav-button-label">{{ trans(key="next", lang=lang) }}</span>
                 </div>
                 <div class="nav-button-title">{{ page.higher.title }}</div>
             </div>
@@ -144,10 +273,10 @@
                 <a class="nav-button nav-button-next group" href="{{ subsection.permalink | safe }}">
                     <div class="nav-button-content">
                         <div class="nav-button-direction">
-                            <span class="nav-button-label">Next</span>
                             <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
+                            <span class="nav-button-label">{{ trans(key="next", lang=lang) }}</span>
                         </div>
                         <div class="nav-button-title">{{ subsection.title }}</div>
                     </div>
