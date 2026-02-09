@@ -9,7 +9,7 @@ generate_feeds = true
 #feed_filenames = ["rss.xml"]
 generate_sitemap = true
 
-# CUSTOM_PERSONAL: tags for internal search only, no feed
+# Tags for internal search only, no feed
 taxonomies = [
     { name = "tags", feed = false },
     { name = "categories", paginate_by = 10, feed = true },
@@ -25,7 +25,7 @@ theme = "github-dark"
 generate_feeds = true
 #feed_filenames = ["rss.xml"]
 build_search_index = true
-# CUSTOM_PERSONAL: tags for internal search only, no feed
+# Tags for internal search only, no feed
 taxonomies = [
     { name = "tags", feed = false },
     { name = "categories", paginate_by = 10, feed = true },
