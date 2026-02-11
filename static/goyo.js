@@ -355,7 +355,10 @@ function initTheme() {
       );
 
       localStorage.setItem("theme", nextTheme);
+
       updateLogoForTheme(nextTheme, config);
+      applyErrataBadges();
+      applyIssueAndForkAlert();
     });
   });
 }
@@ -376,6 +379,36 @@ function updateLogoForTheme(theme, config) {
   var isDark = theme === config.darkTheme;
   if (logoDarkNode) logoDarkNode.classList.toggle("hidden", !isDark);
   if (logoLightNode) logoLightNode.classList.toggle("hidden", isDark);
+}
+
+function isDarkMode() {
+  const config = getThemeConfig();
+  return document.documentElement.getAttribute("data-theme") === config.darkTheme;
+}
+
+function applyThemeAwareClasses(selector, lightAttr, darkAttr) {
+  const dark = isDarkMode();
+
+  document.querySelectorAll(selector).forEach((el) => {
+    const lightCls = el.getAttribute(lightAttr) || "";
+    const darkCls = el.getAttribute(darkAttr) || "";
+
+    // remove both variants
+    for (const c of lightCls.split(/\s+/).filter(Boolean)) el.classList.remove(c);
+    for (const c of darkCls.split(/\s+/).filter(Boolean)) el.classList.remove(c);
+
+    // add chosen variant
+    const chosen = (dark ? darkCls : lightCls).split(/\s+/).filter(Boolean);
+    for (const c of chosen) el.classList.add(c);
+  });
+}
+
+function applyErrataBadges() {
+  applyThemeAwareClasses("[data-errata-badge]", "data-badge-light", "data-badge-dark");
+}
+
+function applyIssueAndForkAlert() {
+  applyThemeAwareClasses("[data-issue-and-typo-alert]", "data-issue-and-typo-alert-light", "data-issue-and-typo-alert-dark");
 }
 
 function initToc() {
@@ -500,6 +533,8 @@ document.addEventListener("DOMContentLoaded", function () {
   initTheme();
   initToc();
   initMath();
+  applyErrataBadges();
+  applyIssueAndForkAlert();
 
   document.addEventListener("keydown", function (event) {
     if ((event.metaKey || event.ctrlKey) && event.key === "k") {
