@@ -19,7 +19,12 @@
         <ul tabindex="0" class="dropdown-content menu bg-base-100 border border-gray-500/15 rounded-box z-1 p-2 shadow-sm">
             {% for member in item.members %}
             <li>
-                <a class="btn btn-ghost hover:no-underline" href="{{ member.url | safe }}">
+                <a class="btn btn-ghost hover:no-underline"
+                    {% if member.url is starting_with("/") %}
+                        href="{{ get_url(path=member.url) | safe }}"
+                    {% else %}
+                        href="{{ member.url | safe }}"
+                    {% endif %}>
                     {% if member.icon %}<i class="{{ member.icon }}"></i>{% endif %}
                     {{ member.name }}
                 </a>
@@ -29,7 +34,12 @@
     </li>
     {% else %}
     <li>
-        <a class="btn btn-ghost hover:no-underline justify-end w-full" href="{{ item.url | safe }}">
+        <a class="btn btn-ghost hover:no-underline justify-end w-full"
+    {% if item.url is starting_with("/") %}
+        href="{{ get_url(path=item.url) | safe }}"
+    {% else %}
+        href="{{ item.url | safe }}"
+    {% endif %}>
             {% if item.icon %}<i class="{{ item.icon }}"></i>{% endif %}
             {{ item.name }}
         </a>
