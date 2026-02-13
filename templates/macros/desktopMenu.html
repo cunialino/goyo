@@ -20,6 +20,8 @@
             {% for member in item.members %}
             <li>
                 <a class="btn btn-ghost hover:no-underline" href="{% if member.url is matching('^https?://') %}{{ member.url | safe }}{% else %}{{ get_url(path=member.url) | safe }}{% endif %}">
+                    {% if member.icon %}<i class="{{ member.icon }}"></i>{% endif %}
+                    {{ member.name }}
                 </a>
             </li>
             {% endfor %}
@@ -28,6 +30,8 @@
     {% else %}
     <li>
         <a class="btn btn-ghost hover:no-underline justify-end w-full" href="{% if item.url is matching('^https?://') %}{{ item.url | safe }}{% else %}{{ get_url(path=item.url) | safe }}{% endif %}">
+          {% if item.icon %}<i class="{{ item.icon }}"></i>{% endif %}
+          {{ item.name }}
         </a>
     </li>
     {% endif %}
